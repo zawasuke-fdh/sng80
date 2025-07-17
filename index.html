@@ -3,300 +3,332 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapbox 時系列マップ（完成版）</title>
+    <title>Mapbox 時系列マップ（最終版）</title>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; }
+        :root {
+            --bg-color: #f4f1ea; /* クリーム色の背景 */
+            --text-color-dark: #5c544b; /* 暗めのテキスト色 */
+            --text-color-light: #7f7569; /* 明るめのテキスト色 */
+            --panel-bg: rgba(244, 241, 234, 0.85); /* パネル背景 */
+            --primary-accent: #2c7a7b; /* 落ち着いたティール */
+            --danger-accent: #c0392b; /* 深い赤 */
+            --border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        body { 
+            margin: 0; padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+        }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.8); color: white; padding: 20px; border-radius: 10px; z-index: 2; font-size: 1.5em; text-align: center; }
         
-        #loader {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            z-index: 2;
-            font-size: 1.2em;
-            text-align: center;
-            line-height: 1.5;
+        #map-toggle-buttons {
+            position: absolute; top: 10px; left: 10px; z-index: 1; display: flex; background-color: var(--panel-bg); border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); backdrop-filter: blur(5px);
         }
-
-        .controls {
-            position: absolute;
-            top: 50%;
-            right: 20px;
-            transform: translateY(-50%);
-            background: rgba(255, 255, 255, 0.9);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-            z-index: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            width: 150px;
+        #map-toggle-buttons button {
+            border: none; background: transparent; color: var(--text-color-light); padding: 10px 15px; cursor: pointer; font-size: 14px; font-weight: bold; transition: background-color 0.2s, color 0.2s;
         }
+        #map-toggle-buttons button.active { background-color: var(--primary-accent); color: white; }
+        #map-toggle-buttons button:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+        #map-toggle-buttons button:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
 
+        .time-controls {
+            position: absolute; top: 55px; left: 10px; background: var(--panel-bg); padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); backdrop-filter: blur(5px); z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 280px;
+        }
         #play {
-            padding: 10px;
-            font-size: 1.2em;
-            cursor: pointer;
-            width: 80%;
+            font-size: 1.2em; cursor: pointer; border: none; background-color: var(--primary-accent); color: white; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s ease;
         }
+        #play:hover { background-color: #3aa1a3; }
+        #slider { width: 100%; cursor: pointer; }
+        #date-label { font-weight: bold; font-size: 1.2em; color: var(--text-color-dark); }
+        #total-count-label {
+            font-weight: bold; font-size: 1.2em; color: var(--primary-accent); padding: 5px 10px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s;
+        }
+        #total-count-label:hover { background-color: rgba(44, 122, 123, 0.1); }
 
-        #slider {
-            width: 120px;
-            writing-mode: vertical-lr;
-            direction: rtl;
-        }
-
-        #date-label, #total-count-label {
-            font-weight: bold;
-            font-size: 1.2em;
-            text-align: center;
-        }
-
-        .mapboxgl-popup-content {
-            padding: 10px 15px;
-            font-family: sans-serif;
-            max-width: 250px;
-        }
-        .mapboxgl-popup-content h3 {
-            margin: 0 0 5px 0;
-            color: #333;
-        }
-        .mapboxgl-popup-content .breakdown {
-            max-height: 150px;
-            overflow-y: auto;
-            font-size: 0.9em;
-        }
-        .mapboxgl-popup-content .breakdown div {
-            margin-bottom: 3px;
-        }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); animation: fadeIn 0.3s; }
+        .modal-content { background-color: var(--bg-color); margin: 5% auto; padding: 25px; border: 1px solid var(--border-color); border-radius: 12px; width: 80%; max-width: 800px; box-shadow: 0 5px 25px rgba(0,0,0,0.2); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px; }
+        .modal-title { font-size: 1.5em; font-weight: bold; color: var(--text-color-dark); }
+        .close-button { color: #aaa; font-size: 32px; font-weight: bold; cursor: pointer; transition: color 0.2s; }
+        .close-button:hover, .close-button:focus { color: var(--text-color-dark); }
+        @keyframes fadeIn { from {opacity: 0} to {opacity: 1} }
     </style>
 </head>
 <body>
 
 <div id="map"></div>
 <div id="loader">データを準備中...</div>
-<div class="controls" style="display: none;">
-    <button id="play">▶ 再生</button>
-    <input id="slider" type="range" min="0" max="143" step="1" value="0">
+
+<div id="map-toggle-buttons" style="display: none;">
+    <button id="sinking-map-btn" class="map-toggle-btn active">戦没地マップ</button>
+    <button id="hometown-map-btn" class="map-toggle-btn">出身地マップ</button>
+</div>
+
+<div class="time-controls" style="display: none;">
+    <button id="play" title="再生/停止"><i class="fas fa-play"></i></button>
     <div id="date-label"></div>
-    <div id="total-count-label"></div>
+    <input id="slider" type="range" step="1" value="0">
+    <div id="total-count-label" title="クリックで月別グラフを表示"></div>
+</div>
+
+<div id="chart-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-title" class="modal-title">グラフ</h2>
+            <span id="modal-close" class="close-button">&times;</span>
+        </div>
+        <div class="modal-body">
+            <canvas id="bar-chart"></canvas>
+        </div>
+    </div>
 </div>
 
 <script>
-    // Mapboxアクセストークン
     mapboxgl.accessToken = 'pk.eyJ1Ijoibm5wZGF0YSIsImEiOiJjbHBnbTV6cXIwd2p2MmlwYWxnYWg1bnh3In0.vDZxaboMvN72PFLaztqqnA'; 
 
-    // 地図の初期化
     const map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/light-v11',
-        projection: 'mercator', 
+        projection: 'mercator',
         center: [130, 25],
         zoom: 2.5
     });
     
-    // 地点データ
-    const locations = {
-        'フィリピン方面': { coords: [120.98, 14.59] },
-        'ビルマ方面': { coords: [96.16, 16.86] },
-        'その他国内': { coords: [138.25, 36.20] },
-        '沖縄': { coords: [127.68, 26.21] },
-        '中国': { coords: [114.30, 30.59] },
-        'ニューギニア方面': { coords: [147.19, -9.44] },
-        '南シナ海': { coords: [113.00, 12.00] },
-        'ソ連': { coords: [135.07, 48.48] },
-        '朝鮮': { coords: [126.97, 37.56] },
-        '福岡県内': { coords: [130.40, 33.59] },
-        'ミクロネシア': { coords: [151.78, 7.47] },
-        'マレー半島方面': { coords: [101.68, 3.13] },
-        'マリアナ諸島': { coords: [145.75, 15.18] },
-        'インド方面': { coords: [93.93, 24.81] },
-        'ソロモン・ビスマルク諸島': { coords: [152.16, -4.19] },
-        'タイ': { coords: [100.52, 13.75] },
-        '台湾': { coords: [121.56, 25.03] },
-        'シンガポール': { coords: [103.81, 1.35] },
-        '太平洋方面': { coords: [177.37, 28.20] },
-        'パラオ諸島': { coords: [134.47, 7.34] },
-        '東シナ海': { coords: [125.00, 29.00] },
-        '硫黄島': { coords: [141.29, 24.79] },
-        'バシー海峡': { coords: [121.50, 21.00] },
-        '満州方面': { coords: [125.32, 43.88] },
-        'インドシナ方面': { coords: [106.62, 10.82] },
-        'ボルネオ': { coords: [115.30, 0.50] },
-        'マーシャル諸島': { coords: [167.73, 8.72] },
-        'ジャワ': { coords: [106.84, -6.20] },
-        'ノモンハン': { coords: [118.75, 47.71] }
-    };
+    const sinking_locations = {'フィリピン方面':{coords:[120.98,14.59]},'ビルマ方面':{coords:[96.16,16.86]},'その他国内':{coords:[138.25,36.2]},'沖縄':{coords:[127.68,26.21]},'中国':{coords:[114.3,30.59]},'ニューギニア方面':{coords:[147.19,-9.44]},'南シナ海':{coords:[113,12]},'ソ連':{coords:[135.07,48.48]},'朝鮮':{coords:[126.97,37.56]},'福岡県内':{coords:[130.4,33.59]},'ミクロネシア':{coords:[151.78,7.47]},'マレー半島方面':{coords:[101.68,3.13]},'マリアナ諸島':{coords:[145.75,15.18]},'インド方面':{coords:[93.93,24.81]},'ソロモン・ビスマルク諸島':{coords:[152.16,-4.19]},'タイ':{coords:[100.52,13.75]},'台湾':{coords:[121.56,25.03]},'シンガポール':{coords:[103.81,1.35]},'太平洋方面':{coords:[177.37,28.2]},'パラオ諸島':{coords:[134.47,7.34]},'東シナ海':{coords:[125,29]},'硫黄島':{coords:[141.29,24.79]},'バシー海峡':{coords:[121.5,21]},'満州方面':{coords:[125.32,43.88]},'インドシナ方面':{coords:[106.62,10.82]},'ボルネオ':{coords:[115.3,0.5]},'マーシャル諸島':{coords:[167.73,8.72]},'ジャワ':{coords:[106.84,-6.2]},'ノモンハン':{coords:[118.75,47.71]}};
+    const hometown_locations = {'福岡県大牟田市':{coords:[130.444,33.029]},'福岡県久留米市':{coords:[130.52,33.318]},'福岡県柳川市':{coords:[130.401,33.165]},'福岡県八女市':{coords:[130.559,33.208]},'八女郡立花町':{coords:[130.518,33.149]},'八女郡矢部村':{coords:[130.793,33.161]},'八女郡黒木町':{coords:[130.665,33.201]},'八女郡上陽町':{coords:[130.638,33.264]},'八女郡広川町':{coords:[130.569,33.255]},'八女郡星野村':{coords:[130.73,33.245]},'福岡県筑後市':{coords:[130.496,33.204]},'福岡県大川市':{coords:[130.38,33.206]},'三瀦郡三潴町':{coords:[130.457,33.257]},'三瀦郡城島町':{coords:[130.422,33.25]},'三瀦郡大木町':{coords:[130.435,33.197]},'三潴郡大木町':{coords:[130.435,33.197]},'山門郡大和町':{coords:[130.413,33.125]},'山門郡三橋町':{coords:[130.428,33.165]},'山門郡山川町':{coords:[130.59,33.09]},'山門郡瀬高町':{coords:[130.474,33.122]},'三池郡高田町':{coords:[130.509,33.085]},'三池郡髙田町':{coords:[130.509,33.085]},'福岡県甘木市':{coords:[130.658,33.42]},'福岡県小郡市':{coords:[130.556,33.393]},'浮羽郡浮羽町':{coords:[130.755,33.328]},'浮羽郡吉井町':{coords:[130.678,33.332]},'浮羽郡田主丸町':{coords:[130.651,33.34]},'三井郡北野町':{coords:[130.596,33.349]},'三井郡大刀洗町':{coords:[130.59,33.407]},'朝倉郡杷木町':{coords:[130.776,33.376]},'朝倉郡三輪町':{coords:[130.594,33.469]},'朝倉郡夜須町':{coords:[130.627,33.479]},'朝倉郡小石原村':{coords:[130.854,33.483]},'朝倉郡宝珠山村':{coords:[130.916,33.463]},'朝倉郡朝倉町':{coords:[130.704,33.421]},'福岡市東区':{coords:[130.455,33.655]},'福岡市博多区':{coords:[130.421,33.585]},'福岡市中央区':{coords:[130.392,33.583]},'福岡市南区':{coords:[130.427,33.543]},'福岡市西区':{coords:[130.3,33.578]},'福岡県筑紫野市':{coords:[130.521,33.491]},'福岡県春日市':{coords:[130.473,33.532]},'福岡県大野城市':{coords:[130.48,33.535]},'福岡県太宰府市':{coords:[130.521,33.513]},'筑紫郡那珂川町':{coords:[130.407,33.492]},'福岡県宗像市':{coords:[130.533,33.805]},'宗像郡福間町':{coords:[130.468,33.769]},'宗像郡津屋崎町':{coords:[130.475,33.781]},'宗像郡玄海町':{coords:[130.455,33.829]},'宗像郡大島村':{coords:[130.423,33.897]},'粕屋郡須恵町':{coords:[130.518,33.588]},'福岡県須恵町':{coords:[130.518,33.588]},'粕屋郡粕屋町':{coords:[130.476,33.621]},'粕屋郡古賀町':{coords:[130.469,33.731]},'粕屋郡志免町':{coords:[130.485,33.596]},'粕屋郡篠栗町':{coords:[130.575,33.626]},'福岡県篠栗町':{coords:[130.575,33.626]},'粕屋郡新宮町':{coords:[130.449,33.701]},'粕屋郡宇美町':{coords:[130.518,33.56]},'粕屋郡久山町':{coords:[130.516,33.654]},'福岡県久山町':{coords:[130.516,33.654]},'糸島郡前原町':{coords:[130.318,33.559]},'糸島郡二丈町':{coords:[130.222,33.537]},'糸島郡志摩町':{coords:[130.228,33.593]},'北九州市門司区':{coords:[130.963,33.935]},'北九州市小倉北区':{coords:[130.88,33.882]},'北九州市小倉南区':{coords:[130.865,33.784]},'北九州市若松区':{coords:[130.809,33.902]},'北九州市八幡東区':{coords:[130.835,33.863]},'北九州市八幡西区':{coords:[130.763,33.859]},'北九州市戸畑区':{coords:[130.833,33.896]},'福岡県中間市':{coords:[130.707,33.818]},'福岡県行橋市':{coords:[130.972,33.727]},'福岡県豊前市':{coords:[131.127,33.612]},'遠賀郡岡垣町':{coords:[130.628,33.844]},'福岡県岡垣町':{coords:[130.628,33.844]},'遠賀郡遠賀町':{coords:[130.655,33.837]},'遠賀郡水巻町':{coords:[130.703,33.853]},'福岡県水巻町':{coords:[130.703,33.853]},'遠賀郡芦屋町':{coords:[130.665,33.876]},'福岡県芦屋町':{coords:[130.665,33.876]},'京都郡苅田町':{coords:[130.985,33.779]},'京都郡勝山町':{coords:[130.871,33.682]},'京都郡犀川町':{coords:[130.932,33.626]},'京都郡豊津町':{coords:[130.925,33.693]},'築上郡築城町':{coords:[131.025,33.655]},'築上郡椎田町':{coords:[131.065,33.67]},'築上郡大平村':{coords:[131.157,33.565]},'築上郡新吉富村':{coords:[131.183,33.568]},'築上郡吉富町':{coords:[131.159,33.606]},'福岡県直方市':{coords:[130.727,33.738]},'福岡県飯塚市':{coords:[130.688,33.642]},'福岡県田川市':{coords:[130.806,33.635]},'福岡県山田市':{coords:[130.771,33.571]},'鞍手郡小竹町':{coords:[130.751,33.702]},'鞍手郡宮田町':{coords:[130.716,33.7]},'福岡県宮田町':{coords:[130.716,33.7]},'鞍手郡鞍手町':{coords:[130.672,33.743]},'福岡県鞍手町':{coords:[130.672,33.743]},'鞍手郡若宮町':{coords:[130.655,33.695]},'嘉穂郡碓井町':{coords:[130.728,33.58]},'嘉穂郡嘉穂町':{coords:[130.706,33.559]},'嘉穂郡稲築町':{coords:[130.749,33.618]},'福岡県稲築町':{coords:[130.749,33.618]},'嘉穂郡庄内町':{coords:[130.729,33.666]},'嘉穂郡頴田町':{coords:[130.744,33.687]},'嘉穂郡穂波町':{coords:[130.697,33.614]},'嘉穂郡筑穂町':{coords:[130.627,33.578]},'福岡県筑穂町':{coords:[130.627,33.578]},'嘉穂郡桂川町':{coords:[130.654,33.588]},'田川郡香春町':{coords:[130.852,33.673]},'田川郡赤村':{coords:[130.887,33.627]},'田川郡添田町':{coords:[130.86,33.565]},'福岡県添田町':{coords:[130.86,33.565]},'田川郡大任町':{coords:[130.849,33.618]},'田川郡川崎町':{coords:[130.814,33.585]},'田川郡糸田町':{coords:[130.771,33.667]},'田川郡金田町':{coords:[130.784,33.682]},'田川郡赤池町':{coords:[130.76,33.708]},'田川郡方城町':{coords:[130.777,33.722]}};
 
-    // 期間設定
     const START_YEAR = 1937;
     const END_YEAR = 1948;
     const TOTAL_MONTHS = (END_YEAR - START_YEAR + 1) * 12;
-    
-    document.getElementById('slider').max = TOTAL_MONTHS - 1;
 
-    // 地図読み込み後のメイン処理
+    let currentMapMode = 'sinking';
+    let allData = {};
+    let chartInstance = null;
+
+    function shortenLocationName(name) {
+        if (typeof name !== 'string') return name;
+        return name.replace(/^福岡県/, '').replace(/^(三井|三潴|瀦|八女|山門|三池|朝倉|浮羽|粕屋|宗像|糸島|筑紫|遠賀|鞍手|嘉穂|田川|京都|築上)郡/, '');
+    }
+    
+    function calculateIncrements(monthlyTotals) {
+        return monthlyTotals.map((total, i) => total - (monthlyTotals[i-1] || 0));
+    }
+
+    function aggregateMonthlyData(rawEvents, locationDict, locationKey) {
+        let monthlyAggregates = [];
+        let monthlyTotals = [];
+        rawEvents.sort((a, b) => a.month_index - b.month_index);
+        let eventIndex = 0;
+        let currentCounts = {};
+        for (let i = 0; i < TOTAL_MONTHS; i++) {
+            while (eventIndex < rawEvents.length && rawEvents[eventIndex].month_index <= i) {
+                const event = rawEvents[eventIndex];
+                currentCounts[event[locationKey]] = (currentCounts[event[locationKey]] || 0) + 1;
+                eventIndex++;
+            }
+            const features = Object.keys(currentCounts)
+                .filter(name => locationDict[name])
+                .map(name => ({
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: locationDict[name].coords },
+                    properties: { name: name, short_name: shortenLocationName(name), count: currentCounts[name] }
+                }));
+            monthlyAggregates.push({ type: 'FeatureCollection', features });
+            monthlyTotals.push(eventIndex);
+        }
+        const monthlyIncrements = calculateIncrements(monthlyTotals);
+        return { monthlyAggregates, monthlyTotals, monthlyIncrements };
+    }
+
     map.on('load', () => {
         Papa.parse('data.csv', {
-            download: true,
-            header: true,
-            skipEmptyLines: true,
+            download: true, header: true, skipEmptyLines: true,
             complete: (results) => {
-                // 1. CSVデータを処理・整形
-                let rawEvents = results.data.map(row => {
-                    const locationName = row.名寄せ;
-                    if (!row.date || !locations[locationName]) return null;
+                const baseEvents = results.data.map(row => {
+                    if (!row.date) return null;
                     const [year, month] = row.date.split('-').map(Number);
                     if (isNaN(year) || isNaN(month) || year < START_YEAR || year > END_YEAR) return null;
                     const month_index = (year - START_YEAR) * 12 + (month - 1);
-                    return { locationName, month_index };
+                    return { sinking_location: row.名寄せ, hometown_location: row.目次, month_index };
                 }).filter(Boolean);
                 
-                if (rawEvents.length === 0) {
-                    document.getElementById('loader').innerHTML = "エラー: 有効なデータがCSVから見つかりませんでした。<br>CSVの形式（列名、日付など）を確認してください。";
+                if (baseEvents.length === 0) {
+                    document.getElementById('loader').innerHTML = "エラー: 有効なデータがCSVから見つかりませんでした。";
                     return;
                 }
+                
+                const sinkingEvents = baseEvents.filter(e => e.sinking_location && sinking_locations[e.sinking_location]);
+                const hometownEvents = baseEvents.filter(e => e.hometown_location && hometown_locations[e.hometown_location]);
 
-                // 2. 全期間のデータを事前集計
-                let monthlyAggregates = [];
-                let monthlyTotals = [];
-                rawEvents.sort((a, b) => a.month_index - b.month_index);
-
-                let eventIndex = 0;
-                let currentCounts = {};
-                for (let i = 0; i < TOTAL_MONTHS; i++) {
-                    while (eventIndex < rawEvents.length && rawEvents[eventIndex].month_index <= i) {
-                        const event = rawEvents[eventIndex];
-                        currentCounts[event.locationName] = (currentCounts[event.locationName] || 0) + 1;
-                        eventIndex++;
-                    }
-                    const features = Object.keys(currentCounts).map(name => ({
-                        type: 'Feature',
-                        geometry: { type: 'Point', coordinates: locations[name].coords },
-                        properties: { name, count: currentCounts[name] }
-                    }));
-                    monthlyAggregates.push({ type: 'FeatureCollection', features });
-                    monthlyTotals.push(eventIndex);
-                }
-
-                // 3. UIのセットアップとイベントリスナーの設定
-                setupUI(rawEvents, monthlyAggregates, monthlyTotals);
-            },
-            error: (error) => {
-                document.getElementById('loader').innerHTML = "エラー: data.csvの読み込みに失敗しました。<br>ファイル名と場所を確認してください。";
-                console.error("CSV Parsing Error:", error);
+                allData = {
+                    sinking: aggregateMonthlyData(sinkingEvents, sinking_locations, 'sinking_location'),
+                    hometown: aggregateMonthlyData(hometownEvents, hometown_locations, 'hometown_location'),
+                    raw: { sinking: sinkingEvents, hometown: hometownEvents }
+                };
+                
+                setupUI();
             }
         });
     });
 
-    // UIを初期化し、インタラクティブな機能を設定する関数
-    function setupUI(rawEvents, monthlyAggregates, monthlyTotals) {
+    function setupUI() {
         document.getElementById('loader').style.display = 'none';
-        document.querySelector('.controls').style.display = 'flex';
+        document.querySelector('.time-controls').style.display = 'flex';
+        document.getElementById('map-toggle-buttons').style.display = 'flex';
 
         map.addSource('aggregated-points', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
         
         map.addLayer({
-            id: 'points-circle',
-            type: 'circle',
-            source: 'aggregated-points',
+            id: 'points-circle', type: 'circle', source: 'aggregated-points',
             paint: {
-                'circle-radius': [ 'interpolate', ['linear'], ['get', 'count'], 100, 15, 10000, 60 ],
-                'circle-color': '#B22222', 'circle-opacity': 0.7,
-                'circle-stroke-width': 1, 'circle-stroke-color': '#fff'
+                'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, ['interpolate', ['linear'], ['get', 'count'], 1, 3, 10000, 40], 12, ['interpolate', ['linear'], ['get', 'count'], 1, 10, 10000, 150]],
+                // ▼▼▼【修正】CSS変数ではなく、直接の色コードを指定 ▼▼▼
+                'circle-color': '#c0392b',
+                'circle-opacity': 0.8,
+                'circle-stroke-width': 1.5,
+                'circle-stroke-color': '#f4f1ea' 
             }
         });
         
-        map.addLayer({
-            id: 'points-label',
-            type: 'symbol',
-            source: 'aggregated-points',
-            layout: {
-                'text-field': ['format', ['get', 'name'], { 'font-scale': 0.9 }, '\n', {}, ['get', 'count'], { 'font-scale': 1.1 }, '人', { 'font-scale': 0.8 }],
-                'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'], 'text-size': 12, 'text-allow-overlap': true
-            },
-            paint: { 'text-color': '#000000' }
+        map.addLayer({ 
+            id: 'points-label', type: 'symbol', source: 'aggregated-points', 
+            layout: { 
+                'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                'text-field': ['format', ['get', 'short_name'], { 'font-scale': 0.9 }, '\n', {}, ['get', 'count'], { 'font-scale': 1.1 }, '人', { 'font-scale': 0.8 }],
+                'text-size': 12, 
+                'text-allow-overlap': false, 'text-ignore-placement': false, 
+                'symbol-sort-key': ['*', -1, ['get', 'count']]
+            }, 
+            paint: {
+                // ▼▼▼【修正】CSS変数ではなく、直接の色コードを指定 ▼▼▼
+                'text-color': '#5c544b', 
+                'text-halo-color': '#f4f1ea', 
+                'text-halo-width': 1.5
+            }
         });
 
         const slider = document.getElementById('slider');
         const playButton = document.getElementById('play');
+        const playIcon = playButton.querySelector('i');
+        const totalCountLabel = document.getElementById('total-count-label');
+        const sinkingBtn = document.getElementById('sinking-map-btn');
+        const hometownBtn = document.getElementById('hometown-map-btn');
         let animationInterval = null;
+        
+        slider.min = 0;
+        slider.max = TOTAL_MONTHS - 1;
 
         const updateMap = (monthIndex) => {
+            if (!allData[currentMapMode]) return;
+            const { monthlyAggregates, monthlyTotals } = allData[currentMapMode];
             const geojsonData = monthlyAggregates[monthIndex] || { type: 'FeatureCollection', features: [] };
             const totalCount = monthlyTotals[monthIndex] || 0;
-
             if (monthIndex < 0 || monthIndex >= TOTAL_MONTHS) return;
             const year = START_YEAR + Math.floor(monthIndex / 12);
             const month = (monthIndex % 12) + 1;
-            document.getElementById('date-label').innerHTML = `${year}年<br>${String(month).padStart(2, '0')}月`;
-            document.getElementById('total-count-label').innerHTML = `合計:<br>${totalCount}人`;
+            document.getElementById('date-label').innerHTML = `<strong>${year}</strong>年 <strong>${String(month).padStart(2, '0')}</strong>月`;
+            totalCountLabel.innerHTML = `合計: <strong>${totalCount.toLocaleString()}</strong>人`;
             map.getSource('aggregated-points').setData(geojsonData);
         };
         
-        slider.addEventListener('input', (e) => updateMap(parseInt(e.target.value, 10)));
+        const setMapMode = (mode) => {
+            currentMapMode = mode;
+            const isSinking = mode === 'sinking';
+            sinkingBtn.classList.toggle('active', isSinking);
+            hometownBtn.classList.toggle('active', !isSinking);
+            const view = isSinking ? { center: [130, 25], zoom: 2.5 } : { center: [130.6, 33.5], zoom: 8.5 };
+            map.flyTo(view);
+            updateMap(parseInt(slider.value, 10));
+        };
+        
+        sinkingBtn.addEventListener('click', () => setMapMode('sinking'));
+        hometownBtn.addEventListener('click', () => setMapMode('hometown'));
+        
+        slider.addEventListener('input', (e) => {
+            if (animationInterval) { clearInterval(animationInterval); animationInterval = null; playIcon.className = 'fas fa-play'; }
+            updateMap(parseInt(e.target.value, 10));
+        });
         
         playButton.addEventListener('click', () => {
-            if (animationInterval) {
-                clearInterval(animationInterval);
-                animationInterval = null;
-                playButton.textContent = '▶ 再生';
-                return;
-            }
-            playButton.textContent = '■ 停止';
-            let currentMonth = parseInt(slider.value, 10);
-            if (currentMonth >= parseInt(slider.max, 10)) {
-                currentMonth = parseInt(slider.min, 10);
-            }
-            animationInterval = setInterval(() => {
-                if (currentMonth > parseInt(slider.max, 10)) {
-                    clearInterval(animationInterval);
-                    animationInterval = null;
-                    playButton.textContent = '▶ 再生';
-                } else {
-                    slider.value = currentMonth;
-                    updateMap(currentMonth);
-                    currentMonth++;
-                }
-            }, 200);
+             if (animationInterval) {
+                 clearInterval(animationInterval); animationInterval = null; playIcon.className = 'fas fa-play'; return;
+             }
+             playIcon.className = 'fas fa-pause';
+             let currentMonth = parseInt(slider.value, 10);
+             if (currentMonth >= parseInt(slider.max, 10)) { currentMonth = 0; slider.value = 0; }
+             animationInterval = setInterval(() => {
+                 if (currentMonth > parseInt(slider.max, 10)) {
+                     clearInterval(animationInterval); animationInterval = null; playIcon.className = 'fas fa-play';
+                 } else { slider.value = currentMonth; updateMap(currentMonth); currentMonth++; }
+             }, 200);
         });
 
         map.on('click', 'points-circle', (e) => {
             const feature = e.features[0];
             const locationName = feature.properties.name;
-            const coordinates = feature.geometry.coordinates.slice();
+            const displayName = feature.properties.short_name;
             const currentMonthIndex = parseInt(slider.value, 10);
-            const eventsForPopup = rawEvents
-                .filter(event => event.locationName === locationName && event.month_index <= currentMonthIndex)
-                .sort((a, b) => a.month_index - b.month_index);
+            const rawEvents = allData.raw[currentMapMode];
+            const locationKey = currentMapMode === 'sinking' ? 'sinking_location' : 'hometown_location';
+            const eventsForPopup = rawEvents.filter(event => event[locationKey] === locationName && event.month_index <= currentMonthIndex);
             const breakdown = {};
             for (const event of eventsForPopup) {
-                const year = START_YEAR + Math.floor(event.month_index / 12);
-                const month = (event.month_index % 12) + 1;
-                const dateStr = `${year}年${String(month).padStart(2, '0')}月`;
+                const dateStr = `${START_YEAR + Math.floor(event.month_index/12)}-${String((event.month_index % 12)+1).padStart(2, '0')}`;
                 breakdown[dateStr] = (breakdown[dateStr] || 0) + 1;
             }
-            let popupHTML = `<h3>${locationName}</h3>`;
-            popupHTML += `<div class="breakdown">`;
-            for (const date in breakdown) {
-                popupHTML += `<div>${date}: ${breakdown[date]}人</div>`;
-            }
-            popupHTML += `</div>`;
-            new mapboxgl.Popup().setLngLat(coordinates).setHTML(popupHTML).addTo(map);
+            const sortedLabels = Object.keys(breakdown).sort();
+            const sortedData = sortedLabels.map(label => breakdown[label]);
+            const displayLabels = sortedLabels.map(label => label.replace('-', '年') + '月');
+            showChartModal(`${displayName} の月別推移`, displayLabels, sortedData);
+        });
+
+        totalCountLabel.addEventListener('click', () => {
+            const data = allData[currentMapMode].monthlyIncrements;
+            const labels = Array.from({length: TOTAL_MONTHS}, (_, i) => {
+                 const year = START_YEAR + Math.floor(i / 12);
+                 const month = (i % 12) + 1;
+                 return `${year}年${String(month).padStart(2, '0')}月`;
+            });
+            const mapName = currentMapMode === 'sinking' ? '戦没地' : '出身地';
+            showChartModal(`${mapName}マップ 合計人数の月別推移`, labels, data);
         });
         
         map.on('mouseenter', 'points-circle', () => { map.getCanvas().style.cursor = 'pointer'; });
         map.on('mouseleave', 'points-circle', () => { map.getCanvas().style.cursor = ''; });
+
+        const modal = document.getElementById('chart-modal');
+        const modalCloseBtn = document.getElementById('modal-close');
+        const modalTitle = document.getElementById('modal-title');
+        const chartCanvas = document.getElementById('bar-chart');
+
+        function showChartModal(title, labels, data) {
+            modalTitle.textContent = title;
+            if (chartInstance) { chartInstance.destroy(); }
+            chartInstance = new Chart(chartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: '人数', data: data, backgroundColor: 'rgba(44, 122, 123, 0.7)', borderColor: 'rgba(44, 122, 123, 1)', borderWidth: 1 }]
+                },
+                options: {
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+                    responsive: true, maintainAspectRatio: true
+                }
+            });
+            modal.style.display = "block";
+        }
+
+        function closeModal() { modal.style.display = "none"; }
+        modalCloseBtn.onclick = closeModal;
+        window.onclick = (event) => { if (event.target == modal) { closeModal(); } };
 
         updateMap(0);
     }
