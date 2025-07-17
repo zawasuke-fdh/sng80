@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapbox 時系列マップ</title>
+    <title>Mapbox 時系列マップ（グラフ改善版）</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
@@ -15,192 +19,51 @@
             --bg-color: #f4f1ea;
             --text-color-dark: #5c544b;
             --text-color-light: #7f7569;
-            --panel-bg: rgba(244, 241, 234, 0.9);
+            --panel-bg: rgba(244, 241, 234, 0.85);
             --primary-accent: #2c7a7b;
             --danger-accent: #c0392b;
             --border-color: rgba(0, 0, 0, 0.1);
         }
 
         body { 
-            margin: 0; 
-            padding: 0; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 0; 
+            font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
         }
-        #map { 
-            position: absolute; 
-            top: 0; 
-            bottom: 0; 
-            width: 100%; 
-        }
-
-        #loader { 
-            position: absolute; 
-            top: 50%; 
-            left: 50%; 
-            transform: translate(-50%, -50%); 
-            background: rgba(0, 0, 0, 0.8); 
-            color: white; 
-            padding: 20px; 
-            border-radius: 10px; 
-            z-index: 2; 
-            font-size: 1.5em; 
-            text-align: center; 
-        }
-
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.8); color: white; padding: 20px; border-radius: 10px; z-index: 2; font-size: 1.5em; text-align: center; }
+        
         #map-toggle-buttons {
-            position: absolute; 
-            top: 10px; 
-            left: 10px; 
-            z-index: 1; 
-            display: flex; 
-            background-color: var(--panel-bg); 
-            border-radius: 8px; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15); 
-            backdrop-filter: blur(5px);
+            position: absolute; top: 10px; left: 10px; z-index: 1; display: flex; background-color: var(--panel-bg); border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); backdrop-filter: blur(5px);
         }
-
         #map-toggle-buttons button {
-            border: none; 
-            background: transparent; 
-            color: var(--text-color-light); 
-            padding: 10px 15px; 
-            cursor: pointer; 
-            font-size: 14px; 
-            font-weight: bold; 
-            transition: background-color 0.2s, color 0.2s;
+            border: none; background: transparent; color: var(--text-color-light); padding: 10px 15px; cursor: pointer; font-size: 14px; font-weight: bold; transition: background-color 0.2s, color 0.2s;
         }
-
-        #map-toggle-buttons button.active { 
-            background-color: var(--primary-accent); 
-            color: white; 
-        }
-
-        #map-toggle-buttons button:first-child { 
-            border-top-left-radius: 8px; 
-            border-bottom-left-radius: 8px; 
-        }
-
-        #map-toggle-buttons button:last-child { 
-            border-top-right-radius: 8px; 
-            border-bottom-right-radius: 8px; 
-        }
+        #map-toggle-buttons button.active { background-color: var(--primary-accent); color: white; }
+        #map-toggle-buttons button:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+        #map-toggle-buttons button:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
 
         .time-controls {
-            position: absolute; 
-            top: 55px; 
-            left: 10px; 
-            background: var(--panel-bg); 
-            padding: 15px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
-            backdrop-filter: blur(5px); 
-            z-index: 1; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            gap: 15px; 
-            width: 280px;
+            position: absolute; top: 55px; left: 10px; background: var(--panel-bg); padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); backdrop-filter: blur(5px); z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 280px;
         }
-
         #play {
-            font-size: 1.2em; 
-            cursor: pointer; 
-            border: none; 
-            background-color: var(--primary-accent); 
-            color: white; 
-            border-radius: 50%; 
-            width: 50px; 
-            height: 50px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            transition: background-color 0.2s ease;
+            font-size: 1.2em; cursor: pointer; border: none; background-color: var(--primary-accent); color: white; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s ease;
         }
-
-        #play:hover { 
-            background-color: #3aa1a3; 
-        }
-
-        #slider { 
-            width: 100%; 
-            cursor: pointer; 
-        }
-
-        #date-label { 
-            font-weight: bold; 
-            font-size: 1.2em; 
-            color: var(--text-color-dark); 
-        }
-
+        #play:hover { background-color: #3aa1a3; }
+        #slider { width: 100%; cursor: pointer; }
+        #date-label { font-weight: bold; font-size: 1.2em; color: var(--text-color-dark); }
         #total-count-label {
-            font-weight: bold; 
-            font-size: 1.2em; 
-            color: var(--primary-accent); 
-            padding: 5px 10px; 
-            border-radius: 5px; 
-            cursor: pointer; 
-            transition: background-color 0.2s;
+            font-weight: bold; font-size: 1.2em; color: var(--primary-accent); padding: 5px 10px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s;
         }
+        #total-count-label:hover { background-color: rgba(44, 122, 123, 0.1); }
 
-        #total-count-label:hover { 
-            background-color: rgba(44, 122, 123, 0.1); 
-        }
-
-        .modal { 
-            display: none; 
-            position: fixed; 
-            z-index: 1000; 
-            left: 0; 
-            top: 0; 
-            width: 100%; 
-            height: 100%; 
-            background-color: rgba(0,0,0,0.6); 
-            animation: fadeIn 0.3s; 
-        }
-
-        .modal-content { 
-            background-color: var(--bg-color); 
-            margin: 5% auto; 
-            padding: 25px; 
-            border: 1px solid var(--border-color); 
-            border-radius: 12px; 
-            width: 80%; 
-            max-width: 800px; 
-            box-shadow: 0 5px 25px rgba(0,0,0,0.2); 
-        }
-
-        .modal-header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border-bottom: 1px solid var(--border-color); 
-            padding-bottom: 15px; 
-            margin-bottom: 20px; 
-        }
-
-        .modal-title { 
-            font-size: 1.5em; 
-            font-weight: bold; 
-            color: var(--text-color-dark); 
-        }
-
-        .close-button { 
-            color: #aaa; 
-            font-size: 32px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: color 0.2s; 
-        }
-
-        .close-button:hover, .close-button:focus { 
-            color: var(--text-color-dark); 
-        }
-
-        @keyframes fadeIn { 
-            from {opacity: 0} 
-            to {opacity: 1} 
-        }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); animation: fadeIn 0.3s; }
+        .modal-content { background-color: var(--bg-color); margin: 5% auto; padding: 25px; border: 1px solid var(--border-color); border-radius: 12px; width: 80%; max-width: 800px; box-shadow: 0 5px 25px rgba(0,0,0,0.2); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px; }
+        .modal-title { font-size: 1.5em; font-weight: bold; color: var(--text-color-dark); }
+        .close-button { color: #aaa; font-size: 32px; font-weight: bold; cursor: pointer; transition: color 0.2s; }
+        .close-button:hover, .close-button:focus { color: var(--text-color-dark); }
+        @keyframes fadeIn { from {opacity: 0} to {opacity: 1} }
     </style>
 </head>
 <body>
@@ -290,13 +153,8 @@
     }
 
     map.on('load', () => {
-        // ▼▼▼【修正】外部URLからCSVを読み込む ▼▼▼
-        const csvUrl = 'http://www.dev.nishinippon.co.jp/assets/nnp/csv/data.csv'; // URL
-
-        Papa.parse(csvUrl, {
-            download: true,
-            header: true,
-            skipEmptyLines: true,
+        Papa.parse('data.csv', {
+            download: true, header: true, skipEmptyLines: true,
             complete: (results) => {
                 const baseEvents = results.data.map(row => {
                     if (!row.date) return null;
@@ -429,12 +287,14 @@
                 breakdown[dateStr] = (breakdown[dateStr] || 0) + 1;
             }
             
+            // ▼▼▼【修正】グラフに0人の月も表示するロジック ▼▼▼
             const displayLabels = [];
             const sortedData = [];
             for (let i = 0; i <= currentMonthIndex; i++) {
                 const year = START_YEAR + Math.floor(i / 12);
                 const month = (i % 12) + 1;
                 const dateKey = `${year}-${String(month).padStart(2, '0')}`;
+                
                 displayLabels.push(dateKey.replace('-', '年') + '月');
                 sortedData.push(breakdown[dateKey] || 0);
             }
@@ -464,12 +324,13 @@
             modalTitle.textContent = title;
             if (chartInstance) { chartInstance.destroy(); }
 
+            // ▼▼▼【修正】Y軸の最大値を計算し、目盛りを調整する ▼▼▼
             const maxDataValue = Math.max(...data);
             let yAxisMax;
             if (maxDataValue < 10) {
                 yAxisMax = 10;
             } else {
-                yAxisMax = Math.ceil((maxDataValue * 1.1) / 10) * 10;
+                yAxisMax = Math.ceil((maxDataValue * 1.1) / 10) * 10; // 少し余裕を持たせて10の倍数に切り上げ
             }
 
             chartInstance = new Chart(chartCanvas, {
@@ -482,7 +343,7 @@
                     scales: { 
                         y: { 
                             beginAtZero: true, 
-                            max: yAxisMax
+                            max: yAxisMax // 計算した最大値を設定
                         } 
                     },
                     responsive: true, maintainAspectRatio: true
