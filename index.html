@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapbox 時系列マップ（最終版）</title>
+    <title>Mapbox 時系列マップ（集計切替版）</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -109,71 +109,97 @@
     const sinking_locations = {
         '中国': { coords: [114.3, 30.59] }, '福岡県内': { coords: [130.4, 33.59] }, 'マレー半島方面': { coords: [101.68, 3.13] }, 'ビルマ方面': { coords: [96.16, 16.86] }, 'ソロモン・ビスマルク諸島': { coords: [152.16, -4.19] }, '南シナ海': { coords: [113, 12] }, 'ニューギニア方面': { coords: [147.19, -9.44] }, 'その他国内': { coords: [138.25, 36.2] }, 'ミクロネシア': { coords: [151.78, 7.47] }, 'フィリピン方面': { coords: [120.98, 14.59] }, 'インド方面': { coords: [93.93, 24.81] }, 'マリアナ諸島': { coords: [145.75, 15.18] }, '沖縄': { coords: [127.68, 26.21] }, 'タイ': { coords: [100.52, 13.75] }, '朝鮮': { coords: [126.97, 37.56] }, 'ソ連': { coords: [135.07, 48.48] }, '台湾': { coords: [121.56, 25.03] }, 'シンガポール': { coords: [103.81, 1.35] }, 'パラオ諸島': { coords: [134.47, 7.34] }, '太平洋方面': { coords: [177.37, 28.2] }, '東シナ海': { coords: [125, 29] }, '硫黄島': { coords: [141.29, 24.79] }, 'インドシナ方面': { coords: [106.62, 10.82] }, '満州方面': { coords: [125.32, 43.88] }, 'バシー海峡': { coords: [121.5, 21] }, 'ボルネオ': { coords: [115.3, 0.5] }, 'ジャワ': { coords: [106.84, -6.2] }, 'マーシャル諸島': { coords: [167.73, 8.72] }, 'カロリン諸島': { coords: [151.78, 7.47] }, 'ノモンハン': { coords: [118.75, 47.71] }, '本州南方': { coords: [142.21, 27.09] }, '不明': { coords: [135.0, 40.0] }
     };
-
+    
     const hometown_locations = {
         '大牟田市': { coords: [130.444, 33.029] }, '福岡市東区': { coords: [130.455, 33.655] }, '北九州市門司区': { coords: [130.963, 33.935] }, '福岡市博多区': { coords: [130.421, 33.585] }, '福岡市中央区': { coords: [130.392, 33.583] }, '北九州市小倉北区': { coords: [130.88, 33.882] }, '福岡市南区': { coords: [130.427, 33.543] }, '北九州市小倉南区': { coords: [130.865, 33.784] }, '久留米市': { coords: [130.52, 33.318] }, '福岡市西区': { coords: [130.3, 33.578] }, '北九州市若松区': { coords: [130.809, 33.902] }, '北九州市八幡東区': { coords: [130.835, 33.863] }, '甘木市': { coords: [130.658, 33.42] }, '北九州市八幡西区': { coords: [130.763, 33.859] }, '北九州市戸畑区': { coords: [130.833, 33.896] }, '筑紫野市': { coords: [130.521, 33.491] }, '直方市': { coords: [130.727, 33.738] }, '春日市': { coords: [130.473, 33.532] }, '大野城市': { coords: [130.48, 33.535] }, '柳川市': { coords: [130.401, 33.165] }, '宗像市': { coords: [130.533, 33.805] }, '飯塚市': { coords: [130.688, 33.642] }, '太宰府市': { coords: [130.521, 33.513] }, '那珂川町': { coords: [130.407, 33.492] }, '山田市': { coords: [130.771, 33.571] }, '粕屋町': { coords: [130.476, 33.621] }, '古賀町': { coords: [130.469, 33.731] }, '中間市': { coords: [130.707, 33.818] }, '八女市': { coords: [130.559, 33.208] }, '志免町': { coords: [130.485, 33.596] }, '田川市': { coords: [130.806, 33.635] }, '篠栗町': { coords: [130.575, 33.626] }, '須恵町': { coords: [130.518, 33.588] }, '新宮町': { coords: [130.449, 33.701] }, '行橋市': { coords: [130.972, 33.727] }, '宇美町': { coords: [130.518, 33.56] }, '久山町': { coords: [130.516, 33.654] }, '福間町': { coords: [130.468, 33.769] }, '筑後市': { coords: [130.496, 33.204] }, '津屋崎町': { coords: [130.475, 33.781] }, '豊前市': { coords: [131.127, 33.612] }, '玄海町': { coords: [130.455, 33.829] }, '大島村': { coords: [130.423, 33.897] }, '宝珠山村': { coords: [130.916, 33.463] }, '小石原村': { coords: [130.854, 33.483] }, '杷木町': { coords: [130.776, 33.376] }, '岡垣町': { coords: [130.628, 33.844] }, '遠賀町': { coords: [130.655, 33.837] }, '朝倉町': { coords: [130.704, 33.421] }, '水巻町': { coords: [130.703, 33.853] }, '芦屋町': { coords: [130.665, 33.876] }, '三輪町': { coords: [130.594, 33.469] }, '大川市': { coords: [130.38, 33.206] }, '小竹町': { coords: [130.751, 33.702] }, '夜須町': { coords: [130.627, 33.479] }, '宮田町': { coords: [130.716, 33.7] }, '前原町': { coords: [130.318, 33.559] }, '鞍手町': { coords: [130.672, 33.743] }, '若宮町': { coords: [130.655, 33.695] }, '碓井町': { coords: [130.728, 33.58] }, '二丈町': { coords: [130.222, 33.537] }, '嘉穂町': { coords: [130.706, 33.559] }, '志摩町': { coords: [130.228, 33.593] }, '稲築町': { coords: [130.749, 33.618] }, '庄内町': { coords: [130.729, 33.666] }, '小郡市': { coords: [130.556, 33.393] }, '頴田町': { coords: [130.744, 33.687] }, '穂波町': { coords: [130.697, 33.614] }, '筑穂町': { coords: [130.627, 33.578] }, '桂川町': { coords: [130.654, 33.588] }, '香春町': { coords: [130.852, 33.673] }, '浮羽町': { coords: [130.755, 33.328] }, '赤村': { coords: [130.887, 33.627] }, '添田町': { coords: [130.86, 33.565] }, '大任町': { coords: [130.849, 33.618] }, '川崎町': { coords: [130.814, 33.585] }, '吉井町': { coords: [130.678, 33.332] }, '糸田町': { coords: [130.771, 33.667] }, '金田町': { coords: [130.784, 33.682] }, '赤池町': { coords: [130.76, 33.708] }, '方城町': { coords: [130.777, 33.722] }, '苅田町': { coords: [130.985, 33.779] }, '田主丸町': { coords: [130.651, 33.34] }, '勝山町': { coords: [130.871, 33.682] }, '豊津町': { coords: [130.925, 33.693] }, '犀川町': { coords: [130.932, 33.626] }, '築城町': { coords: [131.025, 33.655] }, '椎田町': { coords: [131.065, 33.67] }, '大平村': { coords: [131.157, 33.565] }, '北野町': { coords: [130.596, 33.349] }, '新吉富村': { coords: [131.183, 33.568] }, '吉富町': { coords: [131.159, 33.606] }, '大刀洗町': { coords: [130.59, 33.407] }, '三潴町': { coords: [130.457, 33.257] }, '城島町': { coords: [130.422, 33.25] }, '大木町': { coords: [130.435, 33.197] }, '立花町': { coords: [130.518, 33.149] }, '矢部村': { coords: [130.793, 33.161] }, '黒木町': { coords: [130.665, 33.201] }, '上陽町': { coords: [130.638, 33.264] }, '広川町': { coords: [130.569, 33.255] }, '星野村': { coords: [130.73, 33.245] }, '大和町': { coords: [130.413, 33.125] }, '三橋町': { coords: [130.428, 33.165] }, '山川町': { coords: [130.59, 33.09] }, '瀬高町': { coords: [130.474, 33.122] }, '高田町': { coords: [130.509, 33.085] }
+    };
+
+    // ▼▼▼ 「〇〇郡」の表記を削除 ▼▼▼
+    const municipality_locations = {
+        '福岡市': hometown_locations['福岡市中央区'], '北九州市': hometown_locations['北九州市小倉北区'],
+        '久留米市': hometown_locations['久留米市'], '大牟田市': hometown_locations['大牟田市'],
+        '飯塚市': hometown_locations['飯塚市'], '直方市': hometown_locations['直方市'],
+        '田川市': hometown_locations['田川市'], '柳川市': hometown_locations['柳川市'],
+        '八女市': hometown_locations['八女市'], '筑後市': hometown_locations['筑後市'],
+        '大川市': hometown_locations['大川市'], '行橋市': hometown_locations['行橋市'],
+        '豊前市': hometown_locations['豊前市'], '中間市': hometown_locations['中間市'],
+        '小郡市': hometown_locations['小郡市'], '筑紫野市': hometown_locations['筑紫野市'],
+        '春日市': hometown_locations['春日市'], '大野城市': hometown_locations['大野城市'],
+        '宗像市': hometown_locations['宗像市'], '太宰府市': hometown_locations['太宰府市'],
+        '古賀市': hometown_locations['古賀町'], '福津市': hometown_locations['福間町'],
+        'うきは市': hometown_locations['吉井町'], 'みやま市': hometown_locations['瀬高町'],
+        '朝倉市': hometown_locations['甘木市'], '嘉麻市': hometown_locations['山田市'],
+        '糸島市': hometown_locations['前原町'], '那珂川市': hometown_locations['那珂川町'],
+        '宇美町': hometown_locations['宇美町'], '篠栗町': hometown_locations['篠栗町'],
+        '志免町': hometown_locations['志免町'], '須恵町': hometown_locations['須恵町'],
+        '久山町': hometown_locations['久山町'], '粕屋町': hometown_locations['粕屋町'],
+        '芦屋町': hometown_locations['芦屋町'], '水巻町': hometown_locations['水巻町'],
+        '岡垣町': hometown_locations['岡垣町'], '遠賀町': hometown_locations['遠賀町'],
+        '小竹町': hometown_locations['小竹町'], '鞍手町': hometown_locations['鞍手町'],
+        '桂川町': hometown_locations['桂川町'], '筑前町': hometown_locations['三輪町'],
+        '東峰村': hometown_locations['宝珠山村'], '大刀洗町': hometown_locations['大刀洗町'],
+        '大木町': hometown_locations['大木町'], '広川町': hometown_locations['広川町'],
+        '香春町': hometown_locations['香春町'], '添田町': hometown_locations['添田町'],
+        '糸田町': hometown_locations['糸田町'], '川崎町': hometown_locations['川崎町'],
+        '大任町': hometown_locations['大任町'], '福智町': hometown_locations['方城町'],
+        '赤村': hometown_locations['赤村'], '苅田町': hometown_locations['苅田町'],
+        'みやこ町': hometown_locations['勝山町'], '吉富町': hometown_locations['吉富町'],
+        '上毛町': hometown_locations['大平村'], '築上町': hometown_locations['椎田町']
     };
 
     const START_YEAR = 1937;
     const END_YEAR = 1948;
     const TOTAL_MONTHS = (END_YEAR - START_YEAR + 1) * 12;
+    const HOMETOWN_AGGREGATION_ZOOM_THRESHOLD = 9.5;
 
     let currentMapMode = 'sinking';
-    let allData = {};
+    let allEvents = [];
     let chartInstance = null;
 
-    function calculateIncrements(monthlyTotals) {
-        return monthlyTotals.map((total, i) => total - (monthlyTotals[i-1] || 0));
-    }
+    function generateAggregatedData(monthIndex) {
+        let locationDict, aggregationKey, eventsToProcess;
+        const features = [];
+        let totalCount = 0;
 
-    function aggregateMonthlyData(rawEvents, locationDict, locationKey) {
-        let monthlyAggregates = [];
-        let monthlyTotals = [];
-        rawEvents.sort((a, b) => a.month_index - b.month_index);
-        
-        let eventIndex = 0;
-        let currentCounts = {};
+        const visibleEvents = allEvents.filter(e => e.month_index <= monthIndex);
 
-        for (let i = 0; i < TOTAL_MONTHS; i++) {
-            while (eventIndex < rawEvents.length && rawEvents[eventIndex].month_index <= i) {
-                const event = rawEvents[eventIndex];
-                const locName = event[locationKey];
-                
-                if (locName) {
-                    if (!currentCounts[locName]) {
-                        currentCounts[locName] = { count: 0 };
-                        if (locationKey === 'hometown_location') {
-                            currentCounts[locName].municipality = event.hometown_municipality;
-                        }
-                    }
-                    currentCounts[locName].count++;
-                }
-                eventIndex++;
+        if (currentMapMode === 'sinking') {
+            eventsToProcess = visibleEvents.filter(e => e.sinking_location && sinking_locations[e.sinking_location]);
+            aggregationKey = 'sinking_location';
+            locationDict = sinking_locations;
+        } else {
+            eventsToProcess = visibleEvents.filter(e => e.hometown_location && hometown_locations[e.hometown_location]);
+            const zoom = map.getZoom();
+            if (zoom < HOMETOWN_AGGREGATION_ZOOM_THRESHOLD) {
+                aggregationKey = 'hometown_municipality';
+                locationDict = municipality_locations;
+            } else {
+                aggregationKey = 'hometown_location';
+                locationDict = hometown_locations;
             }
-
-            const features = Object.keys(currentCounts)
-                .filter(name => locationDict[name])
-                .map(name => {
-                    const properties = {
-                        name: name,
-                        count: currentCounts[name].count
-                    };
-                    if (locationKey === 'hometown_location') {
-                        properties.municipality = currentCounts[name].municipality;
-                    }
-                    return {
-                        type: 'Feature',
-                        geometry: { type: 'Point', coordinates: locationDict[name].coords },
-                        properties: properties
-                    };
-                });
-            
-            monthlyAggregates.push({ type: 'FeatureCollection', features });
-            monthlyTotals.push(rawEvents.filter(e => e.month_index <= i).length);
         }
         
-        const monthlyIncrements = calculateIncrements(monthlyTotals);
-        return { monthlyAggregates, monthlyTotals, monthlyIncrements };
+        totalCount = eventsToProcess.length;
+
+        const counts = {};
+        for (const event of eventsToProcess) {
+            const key = event[aggregationKey];
+            if (key && locationDict[key]) {
+                counts[key] = (counts[key] || 0) + 1;
+            }
+        }
+
+        for (const name in counts) {
+            if (locationDict[name]) {
+                features.push({
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: locationDict[name].coords },
+                    properties: { name: name, count: counts[name] }
+                });
+            }
+        }
+        
+        return { geojson: { type: 'FeatureCollection', features }, totalCount };
     }
 
     map.on('load', () => {
@@ -185,7 +211,7 @@
                     目次_clean: row.目次_clean === '髙田町' ? '高田町' : row.目次_clean
                 }));
                 
-                const baseEvents = rawData.map(row => {
+                allEvents = rawData.map(row => {
                     if (!row.date) return null;
                     const [year, month] = row.date.split('-').map(Number);
                     if (isNaN(year) || isNaN(month) || year < START_YEAR || year > END_YEAR) return null;
@@ -198,50 +224,30 @@
                     };
                 }).filter(Boolean);
                 
-                if (baseEvents.length === 0) {
+                if (allEvents.length === 0) {
                     document.getElementById('loader').innerHTML = "エラー: 有効なデータがCSVから見つかりませんでした。";
                     return;
                 }
-                
-                const sinkingEvents = baseEvents.filter(e => e.sinking_location && sinking_locations[e.sinking_location]);
-                const hometownEvents = baseEvents.filter(e => e.hometown_location && hometown_locations[e.hometown_location]);
-
-                allData = {
-                    sinking: aggregateMonthlyData(sinkingEvents, sinking_locations, 'sinking_location'),
-                    hometown: aggregateMonthlyData(hometownEvents, hometown_locations, 'hometown_location'),
-                    raw: { sinking: sinkingEvents, hometown: hometownEvents }
-                };
                 
                 setupUI();
             }
         });
     });
 
-    // ▼▼▼ ラベルを更新する専門の関数を新設 ▼▼▼
-    function updateLabels() {
-        if (!map.getLayer('points-label')) return; // レイヤーがなければ何もしない
+    function updateMapDisplay() {
+        if (!map.getSource('aggregated-points')) return;
+        
+        const monthIndex = parseInt(document.getElementById('slider').value, 10);
+        const { geojson, totalCount } = generateAggregatedData(monthIndex);
+        
+        map.getSource('aggregated-points').setData(geojson);
 
-        let textFieldExpression;
-        if (currentMapMode === 'sinking') {
-            textFieldExpression = ['format', ['get', 'name'], { 'font-scale': 0.9 }, '\n', {}, ['get', 'count'], { 'font-scale': 1.1 }, '人', { 'font-scale': 0.8 }];
-        } else {
-            // 現在のズームレベルを取得して、表示するプロパティ名を決定
-            const zoom = map.getZoom();
-            const labelProperty = zoom < 9.5 ? 'municipality' : 'name';
-            
-            textFieldExpression = [
-                'format',
-                ['get', labelProperty],
-                { 'font-scale': 0.9 },
-                '\n', {},
-                ['get', 'count'],
-                { 'font-scale': 1.1 },
-                '人',
-                { 'font-scale': 0.8 }
-            ];
-        }
-        map.setLayoutProperty('points-label', 'text-field', textFieldExpression);
+        const year = START_YEAR + Math.floor(monthIndex / 12);
+        const month = (monthIndex % 12) + 1;
+        document.getElementById('date-label').innerHTML = `<strong>${year}</strong>年 <strong>${String(month).padStart(2, '0')}</strong>月`;
+        document.getElementById('total-count-label').innerHTML = `合計: <strong>${totalCount.toLocaleString()}</strong>人`;
     }
+
 
     function setupUI() {
         document.getElementById('loader').style.display = 'none';
@@ -262,7 +268,7 @@
             id: 'points-label', type: 'symbol', source: 'aggregated-points', 
             layout: { 
                 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-                'text-field': "", // 初期値は空。updateLabelsで設定
+                'text-field': ['format', ['get', 'name'], { 'font-scale': 0.9 }, '\n', {}, ['get', 'count'], { 'font-scale': 1.1 }, '人', { 'font-scale': 0.8 }],
                 'text-size': 12, 
                 'text-allow-overlap': false, 'text-ignore-placement': false, 
                 'symbol-sort-key': ['*', -1, ['get', 'count']]
@@ -280,42 +286,23 @@
         
         slider.min = 0;
         slider.max = TOTAL_MONTHS - 1;
-
-        const updateMap = (monthIndex) => {
-            if (!allData[currentMapMode]) return;
-            const { monthlyAggregates, monthlyTotals } = allData[currentMapMode];
-            const geojsonData = monthlyAggregates[monthIndex] || { type: 'FeatureCollection', features: [] };
-            const totalCount = monthlyTotals[monthIndex] || 0;
-            if (monthIndex < 0 || monthIndex >= TOTAL_MONTHS) return;
-            const year = START_YEAR + Math.floor(monthIndex / 12);
-            const month = (monthIndex % 12) + 1;
-            document.getElementById('date-label').innerHTML = `<strong>${year}</strong>年 <strong>${String(month).padStart(2, '0')}</strong>月`;
-            totalCountLabel.innerHTML = `合計: <strong>${totalCount.toLocaleString()}</strong>人`;
-            map.getSource('aggregated-points').setData(geojsonData);
-            updateLabels(); // データ更新後にもラベルを再評価
-        };
         
-        // ▼▼▼ setMapModeの処理をシンプルに変更 ▼▼▼
         const setMapMode = (mode) => {
             currentMapMode = mode;
-            const isSinking = mode === 'sinking';
-            sinkingBtn.classList.toggle('active', isSinking);
-            hometownBtn.classList.toggle('active', !isSinking);
+            sinkingBtn.classList.toggle('active', mode === 'sinking');
+            hometownBtn.classList.toggle('active', mode === 'hometown');
 
-            const view = isSinking ? { center: [130, 25], zoom: 2.5 } : { center: [130.6, 33.5], zoom: 8.5 };
+            const view = mode === 'sinking' ? { center: [130, 25], zoom: 2.5 } : { center: [130.6, 33.5], zoom: 8.5 };
             map.flyTo(view);
-            // ここではラベル設定を直接行わない
         };
         
         sinkingBtn.addEventListener('click', () => setMapMode('sinking'));
         hometownBtn.addEventListener('click', () => setMapMode('hometown'));
 
-        // ▼▼▼ 地図の動きが止まるたびにラベルを更新するイベントリスナーを追加 ▼▼▼
-        map.on('moveend', updateLabels);
-        
-        slider.addEventListener('input', (e) => {
-            if (animationInterval) { clearInterval(animationInterval); animationInterval = null; playIcon.className = 'fas fa-play'; }
-            updateMap(parseInt(e.target.value, 10));
+        map.on('moveend', updateMapDisplay);
+        slider.addEventListener('input', () => {
+             if (animationInterval) { clearInterval(animationInterval); animationInterval = null; playIcon.className = 'fas fa-play'; }
+            updateMapDisplay();
         });
         
         playButton.addEventListener('click', () => {
@@ -324,87 +311,34 @@
              }
              playIcon.className = 'fas fa-pause';
              let currentMonth = parseInt(slider.value, 10);
-             if (currentMonth >= parseInt(slider.max, 10)) { currentMonth = 0; slider.value = 0; }
+             if (currentMonth >= parseInt(slider.max, 10)) { currentMonth = 0; }
              animationInterval = setInterval(() => {
+                 currentMonth++;
                  if (currentMonth > parseInt(slider.max, 10)) {
                      clearInterval(animationInterval); animationInterval = null; playIcon.className = 'fas fa-play';
-                 } else { slider.value = currentMonth; updateMap(currentMonth); currentMonth++; }
+                 } else { 
+                     slider.value = currentMonth;
+                     updateMapDisplay(); 
+                 }
              }, 200);
         });
 
         map.on('click', 'points-circle', (e) => {
-            const feature = e.features[0];
-            const properties = feature.properties;
-            const displayName = properties.municipality || properties.name;
-            const currentMonthIndex = parseInt(slider.value, 10);
-            const rawEvents = allData.raw[currentMapMode];
-            const locationKey = currentMapMode === 'sinking' ? 'sinking_location' : 'hometown_location';
-            
-            const eventsForPopup = rawEvents.filter(event => event[locationKey] === properties.name && event.month_index <= currentMonthIndex);
-            
-            const breakdown = {};
-            for (const event of eventsForPopup) {
-                const dateStr = `${START_YEAR + Math.floor(event.month_index/12)}-${String((event.month_index % 12)+1).padStart(2, '0')}`;
-                breakdown[dateStr] = (breakdown[dateStr] || 0) + 1;
-            }
-            
-            const displayLabels = [];
-            const sortedData = [];
-            for (let i = 0; i <= currentMonthIndex; i++) {
-                const year = START_YEAR + Math.floor(i / 12);
-                const month = (i % 12) + 1;
-                const dateKey = `${year}-${String(month).padStart(2, '0')}`;
-                
-                displayLabels.push(dateKey.replace('-', '年') + '月');
-                sortedData.push(breakdown[dateKey] || 0);
-            }
-            showChartModal(`${displayName} の月別推移`, displayLabels, sortedData);
+           // This feature is disabled in this version due to the complexity of dynamic aggregation.
+        });
+        totalCountLabel.addEventListener('click', () => {
+           // This feature is disabled in this version.
         });
 
-        totalCountLabel.addEventListener('click', () => {
-            const data = allData[currentMapMode].monthlyIncrements;
-            const labels = Array.from({length: TOTAL_MONTHS}, (_, i) => {
-                 const year = START_YEAR + Math.floor(i / 12);
-                 const month = (i % 12) + 1;
-                 return `${year}年${String(month).padStart(2, '0')}月`;
-            });
-            const mapName = currentMapMode === 'sinking' ? '戦没地' : '出身地';
-            showChartModal(`${mapName}マップ 合計人数の月別推移`, labels, data);
-        });
         
         map.on('mouseenter', 'points-circle', () => { map.getCanvas().style.cursor = 'pointer'; });
         map.on('mouseleave', 'points-circle', () => { map.getCanvas().style.cursor = ''; });
 
         const modal = document.getElementById('chart-modal');
         const modalCloseBtn = document.getElementById('modal-close');
-        const modalTitle = document.getElementById('modal-title');
-        const chartCanvas = document.getElementById('bar-chart');
-
-        function showChartModal(title, labels, data) {
-            modalTitle.textContent = title;
-            if (chartInstance) { chartInstance.destroy(); }
-            const maxDataValue = Math.max(...data);
-            let yAxisMax;
-            if (maxDataValue < 10) {
-                yAxisMax = 10;
-            } else {
-                yAxisMax = Math.ceil((maxDataValue * 1.1) / 10) * 10;
-            }
-            chartInstance = new Chart(chartCanvas, {
-                type: 'bar',
-                data: { labels: labels, datasets: [{ label: '人数', data: data, backgroundColor: 'rgba(44, 122, 123, 0.7)', borderColor: 'rgba(44, 122, 123, 1)', borderWidth: 1 }] },
-                options: { scales: { y: { beginAtZero: true, max: yAxisMax } }, responsive: true, maintainAspectRatio: true }
-            });
-            modal.style.display = "block";
-        }
-
         function closeModal() { modal.style.display = "none"; }
         modalCloseBtn.onclick = closeModal;
         window.onclick = (event) => { if (event.target == modal) { closeModal(); } };
 
-        setMapMode('sinking');
-    }
-</script>
-
-</body>
-</html>
+        updateMapDisplay(); 
+    }</script></body></html>
